@@ -41,16 +41,12 @@ public class TorchService extends Service {
     private static final int MSG_UPDATE_FLASH = 1;
     private static final int MSG_DO_STROBE = 2;
 
-    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver mStrobeReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
-                TorchService.this.stopSelf();
-            } else {
-                mHandler.removeMessages(MSG_DO_STROBE);
-                mStrobePeriod = intent.getIntExtra("period", 200);
-                mHandler.sendEmptyMessage(MSG_DO_STROBE);
-            }
+            mHandler.removeMessages(MSG_DO_STROBE);
+            mStrobePeriod = intent.getIntExtra("period", 200);
+            mHandler.sendEmptyMessage(MSG_DO_STROBE);
         }
     };
 
@@ -101,12 +97,7 @@ public class TorchService extends Service {
         mHandler.removeMessages(MSG_UPDATE_FLASH);
         mHandler.sendEmptyMessage(MSG_UPDATE_FLASH);
 
-        IntentFilter filter = new IntentFilter();
-        if (intent.getBooleanExtra("screenOff", false)) {
-            filter.addAction(Intent.ACTION_SCREEN_OFF);
-        }
-        filter.addAction("net.cactii.flash2.SET_STROBE");
-        registerReceiver(mReceiver, filter);
+        registerReceiver(mStrobeReceiver, new IntentFilter("net.cactii.flash2.SET_STROBE"));
 
         PendingIntent contentIntent = PendingIntent.getActivity(this,
                 0, new Intent(this, MainActivity.class), 0);
@@ -131,7 +122,7 @@ public class TorchService extends Service {
 
     @Override
     public void onDestroy() {
-        unregisterReceiver(mReceiver);
+        unregisterReceiver(mStrobeReceiver);
         stopForeground(true);
         mHandler.removeCallbacksAndMessages(null);
         FlashDevice.instance(this).setFlashMode(FlashDevice.OFF);
